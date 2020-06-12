@@ -22,7 +22,7 @@ class v1_private_ad(plugins.ConfServerApp):
 
         ]
 
-        self.get_milli_time = bumper.ConfServer.ConfServer_GeneralFunctions().get_milli_time
+        self.get_milli_time = bumper.WebServer.get_milli_time
    
     async def handle_getAdByPositionType(self, request):  # EcoVacs Home
         try:

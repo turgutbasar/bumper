@@ -15,12 +15,12 @@ from unittest.mock import MagicMock
 
 
 def create_confserver():
-    return bumper.ConfServer("127.0.0.1:11111", False)
+    return bumper.WebServer("127.0.0.1:11111", False)
 
 
 def create_app(loop):
-    confserver = bumper.ConfServer("127.0.0.1:11111", False)
-    confserver.confserver_app()
+    confserver = bumper.WebServer("127.0.0.1:11111", False)
+    confserver.load()
     return confserver.app
 
 
@@ -36,30 +36,30 @@ def remove_existing_db():
 
 
 async def test_confserver_ssl():
-    conf_server = bumper.ConfServer(("127.0.0.1", 111111), usessl=True)
-    conf_server.confserver_app()
-    asyncio.create_task(conf_server.start_server())
+    conf_server = bumper.WebServer(("127.0.0.1", 111111), usessl=True)
+    conf_server.load()
+    asyncio.create_task(conf_server.start())
 
 async def test_confserver_exceptions():
     with LogCapture() as l:
 
-            conf_server = bumper.ConfServer(("127.0.0.1", 8007), usessl=True)
-            conf_server.confserver_app()        
+            conf_server = bumper.WebServer(("127.0.0.1", 8007), usessl=True)
+            conf_server.load()
             conf_server.site = web.TCPSite
 
             #bind permission       
             conf_server.site.start = mock.Mock(side_effect=OSError(1, "error while attempting to bind on address ('127.0.0.1', 8007): permission denied"))
-            await conf_server.start_server()
+            await conf_server.start()
 
             #asyncio Cancel
             conf_server.site = web.TCPSite
             conf_server.site.start = mock.Mock(side_effect=asyncio.CancelledError)
-            await conf_server.start_server()
+            await conf_server.start()
 
             #general exception
             conf_server.site = web.TCPSite
             conf_server.site.start = mock.Mock(side_effect=Exception(1, "general"))
-            await conf_server.start_server()
+            await conf_server.start()
     
     l.check_present(
         ("confserver", "ERROR", "error while attempting to bind on address ('127.0.0.1', 8007): permission denied")
@@ -67,9 +67,9 @@ async def test_confserver_exceptions():
 
 
 async def test_confserver_no_ssl():
-    conf_server = bumper.ConfServer(("127.0.0.1", 111111), usessl=False)
-    conf_server.confserver_app()
-    asyncio.create_task(conf_server.start_server())
+    conf_server = bumper.WebServer(("127.0.0.1", 111111), usessl=False)
+    conf_server.load()
+    asyncio.create_task(conf_server.start())
 
 
 def test_get_milli_time():
@@ -98,7 +98,7 @@ async def test_base(aiohttp_client):
     xmpp_address = ("127.0.0.1", 5223)
     xmpp_server = bumper.XMPPServer(xmpp_address)
     bumper.xmpp_server = xmpp_server
-    await xmpp_server.start_async_server()
+    await xmpp_server.start()
     
     # Start Helperbot
     mqtt_helperbot = bumper.MQTTHelperBot(mqtt_address)
@@ -109,11 +109,11 @@ async def test_base(aiohttp_client):
     resp = await client.get("/")
     assert resp.status == 200   
 
-    mqtt_helperbot.Client.disconnect()
+    mqtt_helperbot.Client.stop()
 
     await mqtt_server.broker.shutdown()
 
-    bumper.xmpp_server.disconnect()
+    bumper.xmpp_server.stop()
 
 
 async def test_restartService(aiohttp_client):
@@ -130,7 +130,7 @@ async def test_restartService(aiohttp_client):
     xmpp_address = ("127.0.0.1", 5223)
     xmpp_server = bumper.XMPPServer(xmpp_address)
     bumper.xmpp_server = xmpp_server
-    await xmpp_server.start_async_server()
+    await xmpp_server.start()
     
     # Start Helperbot
     mqtt_helperbot = bumper.MQTTHelperBot(mqtt_address)
@@ -148,10 +148,10 @@ async def test_restartService(aiohttp_client):
     resp = await client.get("/restart_XMPPServer")
     assert resp.status == 200   
 
-    mqtt_helperbot.Client.disconnect()
+    mqtt_helperbot.Client.stop()
     await mqtt_server.broker.shutdown()
 
-    xmpp_server.disconnect()
+    xmpp_server.stop()
 
 async def test_RemoveBot(aiohttp_client):
     client = await aiohttp_client(create_app)
@@ -363,7 +363,7 @@ async def test_getAuthCode(aiohttp_client):
 
     # Test as global_e
     resp = await client.get(
-        "/v1/global/auth/getAuthCode?uid={}&deviceId={}".format(None, "dev_1234")
+        "/v1/global/auth.py/getAuthCode?uid={}&deviceId={}".format(None, "dev_1234")
     )
     assert resp.status == 200
     text = await resp.text()
@@ -565,7 +565,7 @@ async def test_neng_hasUnreadMessage(aiohttp_client):
     client = await aiohttp_client(create_app)
 
     postbody = {
-        "auth": {
+        "auth.py": {
             "realm": "ecouser.net",
             "resource": "ecoglobe",
             "token": "us_token",
@@ -711,7 +711,7 @@ async def test_postUsersAPI(aiohttp_client):
 
     # Test GetDeviceList
     postbody = {
-        "auth": {
+        "auth.py": {
             "realm": "ecouser.net",
             "resource": "dev_1234",
             "token": "token_1234",
@@ -729,7 +729,7 @@ async def test_postUsersAPI(aiohttp_client):
 
     # Test SetDeviceNick
     postbody = {
-        "auth": {
+        "auth.py": {
             "realm": "ecouser.net",
             "resource": "dev_1234",
             "token": "token_1234",
@@ -748,7 +748,7 @@ async def test_postUsersAPI(aiohttp_client):
 
     # Test AddOneDevice - Same as set nick for some bots
     postbody = {
-        "auth": {
+        "auth.py": {
             "realm": "ecouser.net",
             "resource": "dev_1234",
             "token": "token_1234",
@@ -767,7 +767,7 @@ async def test_postUsersAPI(aiohttp_client):
 
     # Test DeleteOneDevice - remove bot
     postbody = {
-        "auth": {
+        "auth.py": {
             "realm": "ecouser.net",
             "resource": "dev_1234",
             "token": "token_1234",
@@ -793,7 +793,7 @@ async def test_appsvr_api(aiohttp_client):
     postbody = {
         "aliliving": False,
         "appVer": "1.1.6",
-        "auth": {
+        "auth.py": {
             "realm": "ecouser.net",
             "resource": "ECOGLOBLEac5ae987",
             "token": "token_1234",
@@ -844,7 +844,7 @@ async def test_lg_logs(aiohttp_client):
 
     # Test GetGlobalDeviceList
     postbody = {
-        "auth": {
+        "auth.py": {
             "realm": "ecouser.net",
             "resource": "ECOGLOBLEac5ae987",
             "token": "token_1234",

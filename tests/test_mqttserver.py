@@ -42,7 +42,7 @@ async def test_helperbot_message():
             )
         )  # Check broadcast message was logged
         l.clear()
-        mqtt_helperbot.Client.disconnect()
+        mqtt_helperbot.Client.stop()
 
         # Send command to bot
         mqtt_helperbot = bumper.MQTTHelperBot(mqtt_address)
@@ -68,7 +68,7 @@ async def test_helperbot_message():
             )
         )  # Check send command message was logged
         l.clear()
-        mqtt_helperbot.Client.disconnect()
+        mqtt_helperbot.Client.stop()
 
         # Received response to command
         mqtt_helperbot = bumper.MQTTHelperBot(mqtt_address)
@@ -94,7 +94,7 @@ async def test_helperbot_message():
             )
         )  # Check received response message was logged
         l.clear()
-        mqtt_helperbot.Client.disconnect()
+        mqtt_helperbot.Client.stop()
 
         # Received unknown message
         mqtt_helperbot = bumper.MQTTHelperBot(mqtt_address)
@@ -121,7 +121,7 @@ async def test_helperbot_message():
             )
         )  # Check received message was logged
         l.clear()
-        mqtt_helperbot.Client.disconnect()
+        mqtt_helperbot.Client.stop()
 
         # Received error message
         mqtt_helperbot = bumper.MQTTHelperBot(mqtt_address)
@@ -145,7 +145,7 @@ async def test_helperbot_message():
             )
         )  # Check received message was logged
         l.clear()
-        mqtt_helperbot.Client.disconnect()
+        mqtt_helperbot.Client.stop()
 
     await mqtt_server.broker.shutdown()
 
@@ -211,7 +211,7 @@ async def test_helperbot_expire_message():
                 ),
             )
         )  # Check received message was logged
-        mqtt_helperbot.Client.disconnect()
+        mqtt_helperbot.Client.stop()
 
     await mqtt_server.broker.shutdown()
     
@@ -237,7 +237,7 @@ async def test_helperbot_sendcommand():
         "td": "q",
         "toId": "bot_serial",
         "cmdName": "GetWKVer",
-        "auth": {
+        "auth.py": {
             "token": "us_52cb21fef8e547f38f4ec9a699a5d77e",
             "resource": "IOSF53D07BA",
             "userid": "fuid_tmpuser",
@@ -287,7 +287,7 @@ async def test_helperbot_sendcommand():
         "td": "q",
         "toId": "bot_serial",
         "cmdName": "GetLifeSpan",
-        "auth": {
+        "auth.py": {
             "token": "us_52cb21fef8e547f38f4ec9a699a5d77e",
             "resource": "IOSF53D07BA",
             "userid": "fuid_tmpuser",
@@ -331,7 +331,7 @@ async def test_helperbot_sendcommand():
         "td": "q",
         "toId": "bot_serial",
         "cmdName": "getStats",
-        "auth": {
+        "auth.py": {
             "token": "us_52cb21fef8e547f38f4ec9a699a5d77e",
             "resource": "IOSF53D07BA",
             "userid": "fuid_tmpuser",
@@ -361,7 +361,7 @@ async def test_helperbot_sendcommand():
         "ret": "ok",
     }
 
-    mqtt_helperbot.Client.disconnect()
+    mqtt_helperbot.Client.stop()
 
     await mqtt_server.broker.shutdown()
     
@@ -385,7 +385,7 @@ async def test_mqttserver():
     assert (
         mqtt_helperbot.Client._connected_state._value == True
     )  # Check helperbot is connected
-    await mqtt_helperbot.Client.disconnect()
+    await mqtt_helperbot.Client.stop()
 
     # Test client connect
     bumper.user_add("user_123")  # Add user to db
@@ -404,7 +404,7 @@ async def test_mqttserver():
     assert (
         test_client.Client._connected_state._value == True
     )  # Check client is connected
-    await test_client.Client.disconnect()
+    await test_client.Client.stop()
     assert (
         test_client.Client._connected_state._value == False
     )  # Check client is disconnected
@@ -416,11 +416,11 @@ async def test_mqttserver():
     assert (
         fake_bot.Client._connected_state._value == True
     )  # Check fake_bot is connected
-    await fake_bot.Client.disconnect()
+    await fake_bot.Client.stop()
 
-    # Test file auth client connect
+    # Test file auth.py client connect
     test_client = bumper.MQTTHelperBot(mqtt_address)
-    test_client.client_id = "test-file-auth"
+    test_client.client_id = "test-file-auth.py"
     # await test_client.start_helper_bot()
     test_client.Client = hbmqtt.client.MQTTClient(
         client_id=test_client.client_id, config={"check_hostname": False, "auto_reconnect": False, "reconnect_retries": 1}
@@ -435,7 +435,7 @@ async def test_mqttserver():
     assert (
         test_client.Client._connected_state._value == True
     )  # Check client is connected
-    await test_client.Client.disconnect()
+    await test_client.Client.stop()
     assert (
         test_client.Client._connected_state._value == False
     )  # Check client is disconnected
@@ -449,7 +449,7 @@ async def test_mqttserver():
         )
 
         l.check_present(
-                ("mqttserver", "INFO", "File Authentication Failed - Username: test-client - ClientID: test-file-auth"),
+                ("mqttserver", "INFO", "File Authentication Failed - Username: test-client - ClientID: test-file-auth.py"),
                 order_matters=False
             )
     # no username in file    
@@ -460,7 +460,7 @@ async def test_mqttserver():
 
 
         l.check_present(
-            ("mqttserver", "INFO", 'File Authentication Failed - No Entry for Username: test-client-noexist - ClientID: test-file-auth'),
+            ("mqttserver", "INFO", 'File Authentication Failed - No Entry for Username: test-client-noexist - ClientID: test-file-auth.py'),
             order_matters=False
         )
     

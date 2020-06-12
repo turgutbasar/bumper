@@ -22,7 +22,7 @@ class upload_global(plugins.ConfServerApp):
 
         ]
 
-        self.get_milli_time = bumper.ConfServer.ConfServer_GeneralFunctions().get_milli_time
+        self.get_milli_time = bumper.WebServer.get_milli_time
 
  
 

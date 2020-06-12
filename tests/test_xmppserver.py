@@ -23,7 +23,7 @@ def mock_transport_extra_info(*args, **kwargs):
 async def test_xmpp_server():
     xmpp_address = ("127.0.0.1", 5223)
     xmpp_server = bumper.XMPPServer(xmpp_address)
-    await xmpp_server.start_async_server()
+    await xmpp_server.start()
 
     with LogCapture("xmppserver") as l:
 
@@ -54,14 +54,14 @@ async def test_xmpp_server():
 
         await asyncio.sleep(0.1)
 
-    xmpp_server.disconnect()
+    xmpp_server.stop()
 
 
 async def test_client_connect_no_starttls(*args, **kwargs):
     test_transport = asyncio.Transport()
     test_transport.get_extra_info = mock.Mock(return_value=mock_transport_extra_info())
     test_transport.write = mock.Mock(return_value=return_send_data)
-    xmppclient = bumper.xmppserver.XMPPAsyncClient(test_transport)
+    xmppclient = bumper.xmppserver.XMPPConnection(test_transport)
     xmppclient.state = xmppclient.CONNECT  # Set client state to CONNECT
     mock_send = xmppclient.send = mock.Mock(side_effect=return_send_data)
 
@@ -87,8 +87,8 @@ async def test_client_connect_no_starttls(*args, **kwargs):
     # Reset mock calls
     mock_send.reset_mock()
 
-    # Client sendss auth - Ignoring the starttls, we don't force this with bumper
-    test_data = '<auth xmlns="urn:ietf:params:xml:ns:xmpp-sasl" mechanism="PLAIN">AGZ1aWRfdG1wdXNlcgAwL0lPU0Y1M0QwN0JBL3VzXzg5ODgwMmZkYmM0NDQxYjBiYzgxNWIxZDFjNjgzMDJl</auth>'.encode(
+    # Client sendss auth.py - Ignoring the starttls, we don't force this with bumper
+    test_data = '<auth.py xmlns="urn:ietf:params:xml:ns:xmpp-sasl" mechanism="PLAIN">AGZ1aWRfdG1wdXNlcgAwL0lPU0Y1M0QwN0JBL3VzXzg5ODgwMmZkYmM0NDQxYjBiYzgxNWIxZDFjNjgzMDJl</auth.py>'.encode(
         "utf-8"
     )
     xmppclient._parse_data(test_data)
@@ -104,7 +104,7 @@ async def test_client_end_stream(*args, **kwargs):
     test_transport = asyncio.Transport()
     test_transport.get_extra_info = mock.Mock(return_value=mock_transport_extra_info())
     test_transport.write = mock.Mock(return_value=return_send_data)
-    xmppclient = bumper.xmppserver.XMPPAsyncClient(test_transport)
+    xmppclient = bumper.xmppserver.XMPPConnection(test_transport)
     xmppclient.state = xmppclient.CONNECT  # Set client state to CONNECT
     mock_send = xmppclient.send = mock.Mock(side_effect=return_send_data)
 
@@ -136,7 +136,7 @@ async def test_client_connect_starttls_called(*args, **kwargs):
     test_transport = asyncio.Transport()
     test_transport.get_extra_info = mock.Mock(return_value=mock_transport_extra_info())
     test_transport.write = mock.Mock(return_value=return_send_data)
-    xmppclient = bumper.xmppserver.XMPPAsyncClient(test_transport)
+    xmppclient = bumper.xmppserver.XMPPConnection(test_transport)
     xmppclient.state = xmppclient.CONNECT  # Set client state to CONNECT
     mock_send = xmppclient.send = mock.Mock(side_effect=return_send_data)
 
@@ -168,11 +168,11 @@ async def test_client_connect_starttls_called(*args, **kwargs):
     test_data = "<starttls xmlns='urn:ietf:params:xml:ns:xmpp-tls'/>".encode("utf-8")
     xmppclient._parse_data(test_data)
 
-    # After upgrading connection, server tells client to proceed with auth again
+    # After upgrading connection, server tells client to proceed with auth.py again
     assert mock_tls.called
     xmppclient.TLSUpgraded = True
 
-    # After TLS is upgraded, Client establishes session again and will auth this time
+    # After TLS is upgraded, Client establishes session again and will auth.py this time
     # Send connect stream from "client"
     test_data = "<stream:stream xmlns='jabber:client' xmlns:stream='http://etherx.jabber.org/streams' version='1.0' to='ecouser.net'>".encode(
         "utf-8"
@@ -194,8 +194,8 @@ async def test_client_connect_starttls_called(*args, **kwargs):
     # Reset mock calls
     mock_send.reset_mock()
 
-    # Client sends auth
-    test_data = '<auth xmlns="urn:ietf:params:xml:ns:xmpp-sasl" mechanism="PLAIN">AGZ1aWRfdG1wdXNlcgAwL0lPU0Y1M0QwN0JBL3VzXzg5ODgwMmZkYmM0NDQxYjBiYzgxNWIxZDFjNjgzMDJl</auth>'.encode(
+    # Client sends auth.py
+    test_data = '<auth.py xmlns="urn:ietf:params:xml:ns:xmpp-sasl" mechanism="PLAIN">AGZ1aWRfdG1wdXNlcgAwL0lPU0Y1M0QwN0JBL3VzXzg5ODgwMmZkYmM0NDQxYjBiYzgxNWIxZDFjNjgzMDJl</auth.py>'.encode(
         "utf-8"
     )
     xmppclient._parse_data(test_data)
@@ -211,7 +211,7 @@ async def test_xmpp_server_client_tls():
 
     xmpp_address = ("127.0.0.1", 5223)
     xmpp_server = bumper.XMPPServer(xmpp_address)
-    await xmpp_server.start_async_server()
+    await xmpp_server.start()
 
     with LogCapture("xmppserver") as l:
 
@@ -226,7 +226,7 @@ async def test_xmpp_server_client_tls():
             await writer.drain()
 
             writer.write(
-                b'<auth xmlns="urn:ietf:params:xml:ns:xmpp-sasl" mechanism="PLAIN">AGZ1aWRfdG1wdXNlcgAwL0lPU0Y1M0QwN0JBL3VzXzg5ODgwMmZkYmM0NDQxYjBiYzgxNWIxZDFjNjgzMDJl</auth>'
+                b'<auth.py xmlns="urn:ietf:params:xml:ns:xmpp-sasl" mechanism="PLAIN">AGZ1aWRfdG1wdXNlcgAwL0lPU0Y1M0QwN0JBL3VzXzg5ODgwMmZkYmM0NDQxYjBiYzgxNWIxZDFjNjgzMDJl</auth.py>'
             )  # Send Auth
 
             await writer.drain()
@@ -268,7 +268,7 @@ async def test_client_init(*args, **kwargs):
     test_transport = asyncio.Transport()
     test_transport.get_extra_info = mock.Mock(return_value=mock_transport_extra_info())
     test_transport.write = mock.Mock(return_value=return_send_data)
-    xmppclient = bumper.xmppserver.XMPPAsyncClient(test_transport)
+    xmppclient = bumper.xmppserver.XMPPConnection(test_transport)
     xmppclient.state = xmppclient.INIT  # Set client state to INIT
     xmppclient.uid = "fuid_tmpuser"
     xmppclient.resource = "IOSF53D07BA"
@@ -342,7 +342,7 @@ async def test_bot_connect(*args, **kwargs):
     test_transport = asyncio.Transport()
     test_transport.get_extra_info = mock.Mock(return_value=mock_transport_extra_info())
     test_transport.write = mock.Mock(return_value=return_send_data)
-    xmppclient = bumper.xmppserver.XMPPAsyncClient(test_transport)
+    xmppclient = bumper.xmppserver.XMPPConnection(test_transport)
     xmppclient.state = xmppclient.CONNECT  # Set client state to CONNECT
     mock_send = xmppclient.send = mock.Mock(side_effect=return_send_data)
 
@@ -368,8 +368,8 @@ async def test_bot_connect(*args, **kwargs):
     # Reset mock calls
     mock_send.reset_mock()
 
-    # Send auth from "bot"
-    test_data = "<auth xmlns='urn:ietf:params:xml:ns:xmpp-sasl' mechanism='PLAIN'>AEUwMDAwMDAwMDAwMDAwMDAxMjM0AGVuY3J5cHRlZF9wYXNz</auth>".encode(
+    # Send auth.py from "bot"
+    test_data = "<auth.py xmlns='urn:ietf:params:xml:ns:xmpp-sasl' mechanism='PLAIN'>AEUwMDAwMDAwMDAwMDAwMDAxMjM0AGVuY3J5cHRlZF9wYXNz</auth.py>".encode(
         "utf-8"
     )
     xmppclient._parse_data(test_data)
@@ -386,7 +386,7 @@ async def test_bot_init(*args, **kwargs):
     test_transport = asyncio.Transport()
     test_transport.get_extra_info = mock.Mock(return_value=mock_transport_extra_info())
     test_transport.write = mock.Mock(return_value=return_send_data)
-    xmppclient = bumper.xmppserver.XMPPAsyncClient(test_transport)
+    xmppclient = bumper.xmppserver.XMPPConnection(test_transport)
     xmppclient.state = xmppclient.INIT  # Set client state to INIT
     xmppclient.uid = "E0000000000000001234"
     xmppclient.devclass = "159"
@@ -460,7 +460,7 @@ async def test_ping_server(*args, **kwargs):
     test_transport = asyncio.Transport()
     test_transport.get_extra_info = mock.Mock(return_value=mock_transport_extra_info())
     test_transport.write = mock.Mock(return_value=return_send_data)
-    xmppclient = bumper.xmppserver.XMPPAsyncClient(test_transport)
+    xmppclient = bumper.xmppserver.XMPPConnection(test_transport)
     xmppclient.state = xmppclient.READY  # Set client state to READY
     xmppclient.uid = "E0000000000000001234"
     xmppclient.devclass = "159"
@@ -483,14 +483,14 @@ async def test_ping_client_to_client(*args, **kwargs):
     test_transport = asyncio.Transport()
     test_transport.get_extra_info = mock.Mock(return_value=mock_transport_extra_info())
     test_transport.write = mock.Mock(return_value=return_send_data)
-    xmppclient = bumper.xmppserver.XMPPAsyncClient(test_transport)
+    xmppclient = bumper.xmppserver.XMPPConnection(test_transport)
     xmppclient.state = xmppclient.READY  # Set client state to READY
     xmppclient.uid = "E0000000000000001234"
     xmppclient.devclass = "159"
     xmppclient.bumper_jid = "E0000000000000001234@159.ecorobot.net/atom"
     mock_send = xmppclient.send = mock.Mock(side_effect=return_send_data)
 
-    xmppclient2 = bumper.xmppserver.XMPPAsyncClient(test_transport)
+    xmppclient2 = bumper.xmppserver.XMPPConnection(test_transport)
     xmppclient2.state = xmppclient.READY  # Set client state to READY
     xmppclient2.uid = "fuid_tmpuser"
     xmppclient2.resource = "IOSF53D07BA"
@@ -527,7 +527,7 @@ async def test_client_send_iq(*args, **kwargs):
     test_transport = asyncio.Transport()
     test_transport.get_extra_info = mock.Mock(return_value=mock_transport_extra_info())
     test_transport.write = mock.Mock(return_value=return_send_data)
-    xmppclient = bumper.xmppserver.XMPPAsyncClient(test_transport)
+    xmppclient = bumper.xmppserver.XMPPConnection(test_transport)
     xmppclient.state = xmppclient.READY  # Set client state to READY
     xmppclient.uid = "fuid_tmpuser"
     xmppclient.resource = "IOSF53D07BA"
@@ -536,7 +536,7 @@ async def test_client_send_iq(*args, **kwargs):
     mock_send = xmppclient.send = mock.Mock(side_effect=return_send_data)
     bumper.xmppserver.XMPPServer.clients.append(xmppclient)
 
-    xmppclient2 = bumper.xmppserver.XMPPAsyncClient(test_transport)
+    xmppclient2 = bumper.xmppserver.XMPPConnection(test_transport)
     xmppclient2.state = xmppclient.READY  # Set client state to READY
     xmppclient2.uid = "E0000000000000001234"
     xmppclient2.devclass = "159"

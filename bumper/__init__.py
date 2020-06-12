@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
-from enum import Enum
 
-from bumper.confserver import ConfServer
-from bumper.mqttserver import MQTTServer, MQTTHelperBot
+from bumper.webserver import WebServer
 from bumper.xmppserver import XMPPServer
 from bumper.models import *
 from bumper.db import *
@@ -10,11 +8,11 @@ import asyncio
 import os
 import logging
 from logging.handlers import RotatingFileHandler
-import socket
 import sys
 
 import importlib
 import pkgutil
+
 
 def strtobool(strbool):
     if str(strbool).lower() in ["true", "1", "t", "y", "on", "yes"]:
@@ -36,16 +34,13 @@ certs_dir = os.environ.get("BUMPER_CERTS") or os.path.join(bumper_dir, "certs")
 os.makedirs(certs_dir, exist_ok=True)  # Ensure data directory exists or create
 
 
-
 # Certs
 ca_cert = os.environ.get("BUMPER_CA") or os.path.join(certs_dir, "ca.crt")
 server_cert = os.environ.get("BUMPER_CERT") or os.path.join(certs_dir, "bumper.crt")
 server_key = os.environ.get("BUMPER_KEY") or os.path.join(certs_dir, "bumper.key")
 
 # Listeners
-bumper_listen = os.environ.get("BUMPER_LISTEN") or socket.gethostbyname(
-    socket.gethostname()
-)
+bumper_listen = "0.0.0.0"
 
 
 bumper_announce_ip = os.environ.get("BUMPER_ANNOUNCE_IP") or bumper_listen
@@ -92,45 +87,6 @@ conf_rotate = RotatingFileHandler(
 )
 conf_rotate.setFormatter(logformat)
 confserverlog.addHandler(conf_rotate)
-# Override the logging level
-# confserverlog.setLevel(logging.INFO)
-
-# mqttserverlog = logging.getLogger("mqttserver")
-# mqtt_rotate = RotatingFileHandler(
-#     "logs/mqttserver.log", maxBytes=5000000, backupCount=5
-# )
-# mqtt_rotate.setFormatter(logformat)
-# mqttserverlog.addHandler(mqtt_rotate)
-# # Override the logging level
-# # mqttserverlog.setLevel(logging.INFO)
-#
-# ### Additional MQTT Logs
-# translog = logging.getLogger("transitions")
-# translog.addHandler(mqtt_rotate)
-# translog.setLevel(logging.CRITICAL + 1)  # Ignore this logger
-# logging.getLogger("passlib").setLevel(logging.CRITICAL + 1)  # Ignore this logger
-# brokerlog = logging.getLogger("hbmqtt.broker")
-# #brokerlog.setLevel(
-# #    logging.CRITICAL + 1
-# #)  # Ignore this logger #There are some sublogs that could be set if needed (.plugins)
-# brokerlog.addHandler(mqtt_rotate)
-# protolog = logging.getLogger("hbmqtt.mqtt.protocol")
-# #protolog.setLevel(
-# #    logging.CRITICAL + 1
-# #)  # Ignore this logger
-# protolog.addHandler(mqtt_rotate)
-# clientlog = logging.getLogger("hbmqtt.client")
-# #clientlog.setLevel(logging.CRITICAL + 1)  # Ignore this logger
-# clientlog.addHandler(mqtt_rotate)
-#
-# helperbotlog = logging.getLogger("helperbot")
-# helperbot_rotate = RotatingFileHandler(
-#     "logs/helperbot.log", maxBytes=5000000, backupCount=5
-# )
-# helperbot_rotate.setFormatter(logformat)
-# helperbotlog.addHandler(helperbot_rotate)
-# # Override the logging level
-# # helperbotlog.setLevel(logging.INFO)
 
 boterrorlog = logging.getLogger("boterror")
 boterrorlog_rotate = RotatingFileHandler(
@@ -152,120 +108,13 @@ xmppserverlog.addHandler(xmpp_rotate)
 
 logging.getLogger("asyncio").setLevel(logging.CRITICAL + 1)  # Ignore this logger
 
-
-mqtt_listen_port = 8883
-conf1_listen_port = 443
-conf2_listen_port = 8007
 xmpp_listen_port = 5223
 
-#
-# async def start():
-#
-#     try:
-#         loop = asyncio.get_event_loop()
-#     except:
-#         loop = asyncio.new_event_loop()
-#
-#     if bumper_debug:
-#         logging.basicConfig(
-#             level=logging.DEBUG,
-#             format="[%(asctime)s] :: %(levelname)s :: %(name)s :: %(module)s :: %(funcName)s :: %(lineno)d :: %(message)s",
-#         )
-#         loop.set_debug(True)  # Set asyncio loop to debug
-#         # logging.getLogger("asyncio").setLevel(logging.DEBUG)  # Show debug asyncio logs (disabled in init, uncomment for debugging asyncio)
-#     else:
-#         logging.basicConfig(
-#             level=logging.INFO,
-#             format="[%(asctime)s] :: %(levelname)s :: %(name)s :: %(message)s",
-#         )
-#
-#     if not bumper_listen:
-#         logging.log(logging.FATAL, "No listen address configured")
-#         return
-#
-#     if not (
-#         os.path.exists(ca_cert)
-#         and os.path.exists(server_cert)
-#         and os.path.exists(server_key)
-#     ):
-#         logging.log(logging.FATAL, "Certificate(s) don't exist at paths specified")
-#         return
-#
-#     bumperlog.info("Starting Bumper")
-#     if bumper_mode is BumperMode.FULL:
-#         global mqtt_server
-#         mqtt_server = MQTTServer((bumper_listen, mqtt_listen_port))
-#         global mqtt_helperbot
-#         mqtt_helperbot = MQTTHelperBot((bumper_listen, mqtt_listen_port))
-#     global conf_server
-#     conf_server = ConfServer((bumper_listen, conf1_listen_port), usessl=True)
-#     global conf_server_2
-#     conf_server_2 = ConfServer((bumper_listen, conf2_listen_port), usessl=False)
-#     global xmpp_server
-#     xmpp_server = XMPPServer((bumper_listen, xmpp_listen_port))
-#
-#     if bumper_mode is BumperMode.FULL:
-#         # Start MQTT Server
-#         asyncio.create_task(mqtt_server.broker_coro())
-#
-#         # Start MQTT Helperbot
-#         asyncio.create_task(mqtt_helperbot.start_helper_bot())
-#
-#     # Start XMPP Server
-#     asyncio.create_task(xmpp_server.start_async_server())
-#
-#     if bumper_mode is BumperMode.FULL:
-#         # Wait for helperbot to connect first
-#         while mqtt_helperbot.Client is None:
-#             await asyncio.sleep(0.1)
-#
-#         while not mqtt_helperbot.Client.session.transitions.state == "connected":
-#             await asyncio.sleep(0.1)
-#
-#     # Start web servers
-#     conf_server.confserver_app()
-#     asyncio.create_task(conf_server.start_site(conf_server.app, address=bumper_listen, port=conf1_listen_port, usessl=True))
-#     asyncio.create_task(conf_server.start_site(conf_server.app, address=bumper_listen, port=conf2_listen_port, usessl=False))
-#
-#     # Start maintenance
-#     while not shutting_down:
-#         asyncio.create_task(maintenance())
-#         await asyncio.sleep(5)
-#
-#
+
 # async def maintenance():
 #     revoke_expired_tokens()
 #
 #
-# async def shutdown():
-#     try:
-#         bumperlog.info("Shutting down")
-#
-#         await conf_server.stop_server()
-#         await conf_server_2.stop_server()
-#         if mqtt_server.broker.transitions.state == "started":
-#             await mqtt_server.broker.shutdown()
-#         elif mqtt_server.broker.transitions.state == "starting":
-#             while mqtt_server.broker.transitions.state == "starting":
-#                 await asyncio.sleep(0.1)
-#             if mqtt_server.broker.transitions.state == "started":
-#                 await mqtt_server.broker.shutdown()
-#                 await mqtt_helperbot.Client.disconnect()
-#         if xmpp_server.server:
-#             if xmpp_server.server._serving:
-#                 xmpp_server.server.close()
-#             await xmpp_server.server.wait_closed()
-#         global shutting_down
-#         shutting_down = True
-#
-#     except asyncio.CancelledError:
-#         bumperlog.info("Coroutine canceled")
-#
-#     except Exception as e:
-#         bumperlog.info("Exception: {}".format(e))
-#
-#     finally:
-#         bumperlog.info("Shutdown complete")
 #
 #
 # def create_certs():
@@ -319,81 +168,32 @@ xmpp_listen_port = 5223
 #     create_certs()
 #
 
+
 class BumperFakeBotServer:
     def __init__(self, xmpp_addr, web_server):
         self.xmpp_server = XMPPServer(xmpp_addr)
-        self.web_server = ConfServer(web_server, usessl=False)
+        self.web_server = WebServer(web_server)
 
     async def run(self):
-        # Start XMPP server
-        asyncio.create_task(self.xmpp_server.start_async_server())
-        # Start web server
-        self.web_server.confserver_app()
-        asyncio.create_task(self.web_server.start_server())
+        # Start XMPP & web server
+        await asyncio.gather(self.xmpp_server.start(), self.web_server.start())
+
+    async def shutdown(self):
+        await self.web_server.stop()
+        self.xmpp_server.stop()
+        bumperlog.info("Shutdown complete")
 
 
 def main():
     # Init fake server with xmpp
-    server = BumperFakeBotServer(("0.0.0.0", xmpp_listen_port), ("0.0.0.0", 8080))
+    server = None
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(server.run())
-    loop.run_forever()
-
-    # import argparse
-    #
-    # global bumper_debug
-    # global bumper_listen
-    # global bumper_announce_ip
-    # if not argv:
-    #     argv = sys.argv[1:]  # Set argv to argv[1:] if not passed into main
-    # try:
-    #
-    #     if not (
-    #         os.path.exists(ca_cert)
-    #         and os.path.exists(server_cert)
-    #         and os.path.exists(server_key)
-    #     ):
-    #         first_run()
-    #         return
-    #
-    #     if not (
-    #         os.path.exists(os.path.join(data_dir, "passwd"))
-    #     ):
-    #         with open(os.path.join(data_dir, "passwd"), 'w'): pass
-    #
-    #     parser = argparse.ArgumentParser()
-    #     parser.add_argument(
-    #         "--listen", type=str, default=None, help="start serving on address"
-    #     )
-    #     parser.add_argument(
-    #         "--announce",
-    #         type=str,
-    #         default=None,
-    #         help="announce address to bots on checkin",
-    #     )
-    #     parser.add_argument("--debug", action="store_true", help="enable debug logs")
-    #
-    #     args = parser.parse_args(args=argv)
-    #
-    #     if args.debug:
-    #         bumper_debug = True
-    #
-    #     if args.listen:
-    #         bumper_listen = args.listen
-    #
-    #     if args.announce:
-    #         bumper_announce_ip = args.announce
-    #
-    #     asyncio.run(start())
-    #
-    # except KeyboardInterrupt:
-    #     bumperlog.info("Keyboard Interrupt!")
-    #     pass
-    #
-    # except Exception as e:
-    #     bumperlog.exception(e)
-    #     pass
-    #
-    # finally:
-    #     asyncio.run(shutdown())
+    try:
+        server = BumperFakeBotServer(("0.0.0.0", xmpp_listen_port), ("0.0.0.0", 8080))
+        loop.run_until_complete(server.run())
+    except KeyboardInterrupt:
+        bumperlog.info("Shutting down...")
+    finally:
+        if server is not None:
+            loop.run_until_complete(server.shutdown())
 

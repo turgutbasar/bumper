@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-import bumper
-from bumper.models import VacBotClient, VacBotDevice, BumperUser, EcoVacsHomeProducts
-from tinydb import TinyDB, Query
-from tinydb.storages import MemoryStorage
-from datetime import datetime, timedelta
-import os
 import json
 import logging
+import os
+from datetime import datetime, timedelta
 
+from tinydb import TinyDB, Query
+
+import bumper
+from bumper.models import VacBotClient, VacBotDevice, BumperUser, EcoVacsHomeProducts
 
 bumperlog = logging.getLogger("bumper")
 

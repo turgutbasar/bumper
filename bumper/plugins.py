@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-import asyncio
-from aiohttp import web
+
 
 class ConfServerApp():
     name = None
@@ -9,5 +8,4 @@ class ConfServerApp():
     app = None
     sub_api = None
     routes = None
-    
-    
+

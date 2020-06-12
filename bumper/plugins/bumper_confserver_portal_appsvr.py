@@ -14,7 +14,7 @@ class portal_api_appsvr(plugins.ConfServerApp):
     def __init__(self):
         self.name = "portal_api_appsvr"
         self.plugin_type = "sub_api"        
-        self.sub_api = "portal_api"
+        self.sub_api = "/api/"
         
         self.routes = [
       
@@ -22,7 +22,7 @@ class portal_api_appsvr(plugins.ConfServerApp):
 
         ]
 
-        self.get_milli_time = bumper.ConfServer.ConfServer_GeneralFunctions().get_milli_time
+        self.get_milli_time = bumper.WebServer.get_milli_time
 
     async def handle_appsvr_api(self, request):
             if not request.method == "GET":  # Skip GET for now
@@ -97,7 +97,7 @@ class portal_api_appsvr(plugins.ConfServerApp):
                         # {
                         # "todo": "ShareDevice",
                         # "accountType": "EMAIL",
-                        # "auth": {
+                        # "auth.py": {
                         #     "realm": "ecouser.net",
                         #     "resource": "res",
                         #     "token": "token***",
@@ -126,7 +126,7 @@ class portal_api_appsvr(plugins.ConfServerApp):
                     #  {
                         # "todo": "ShareUnRegisterDevice",
                         # "account": "email to share to",
-                        # "auth": {
+                        # "auth.py": {
                         #     "realm": "ecouser.net",
                         #     "resource": "res",
                         #     "token": "toke",

@@ -15,7 +15,7 @@ class portal_api_iot(plugins.ConfServerApp):
     def __init__(self):
         self.name = "portal_api_iot"
         self.plugin_type = "sub_api"        
-        self.sub_api = "portal_api"
+        self.sub_api = "/api/"
         
         self.routes = [
  
@@ -23,7 +23,7 @@ class portal_api_iot(plugins.ConfServerApp):
 
         ]
 
-        self.get_milli_time = bumper.ConfServer.ConfServer_GeneralFunctions().get_milli_time
+        self.get_milli_time = bumper.WebServer.get_milli_time
   
     async def handle_devmanager_botcommand(self, request):
         try:
